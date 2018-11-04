@@ -108,7 +108,7 @@ void mousecam_read_motion(struct MD *p)
   digitalWrite(PIN_MOUSECAM_CS, LOW);
   SPI.transfer(ADNS3080_MOTION_BURST);
   delayMicroseconds(75);
-  p->motion =  SPI.transfer(0xff);
+  p->motion =  SFrPI.transfer(0xff);
   p->dx =  SPI.transfer(0xff);
   p->dy =  SPI.transfer(0xff);
   p->squal =  SPI.transfer(0xff);
@@ -121,49 +121,7 @@ void mousecam_read_motion(struct MD *p)
 
 // pdata must point to an array of size ADNS3080_PIXELS_X x ADNS3080_PIXELS_Y
 // you must call mousecam_reset() after this if you want to go back to normal operation
-int mousecam_frame_capture(byte *pdata)
-{
-  mousecam_write_reg(ADNS3080_FRAME_CAPTURE,0x83);
-  
-  digitalWrite(PIN_MOUSECAM_CS, LOW);
-  
-  SPI.transfer(ADNS3080_PIXEL_BURST);
-  delayMicroseconds(50);
-  
-  int pix;
-  byte started = 0;
-  int count;
-  int timeout = 0;
-  int ret = 0;
-  for(count = 0; count < ADNS3080_PIXELS_X * ADNS3080_PIXELS_Y; )
-  {
-    pix = SPI.transfer(0xff);
-    delayMicroseconds(10);
-    if(started==0)
-    {
-      if(pix&0x40)
-        started = 1;
-      else
-      {
-        timeout++;
-        if(timeout==100)
-        {
-          ret = -1;
-          break;
-        }
-      }
-    }
-    if(started==1)
-    {
-      pdata[count++] = (pix & 0x3f)<<2; // scale to normal grayscale byte range
-    }
-  }
 
-  digitalWrite(PIN_MOUSECAM_CS,HIGH); 
-  delayMicroseconds(14);
-  
-  return ret;
-}
 
 void setup() 
 {
@@ -196,27 +154,6 @@ byte frame[ADNS3080_PIXELS_X * ADNS3080_PIXELS_Y];
 
 void loop() 
 {
-  #if 0
-  
-  // if enabled this section grabs frames and outputs them as ascii art
-  
-  if(mousecam_frame_capture(frame)==0)
-  {
-    int i,j,k;
-    for(i=0, k=0; i<ADNS3080_PIXELS_Y; i++) 
-    {
-      for(j=0; j<ADNS3080_PIXELS_X; j++, k++) 
-      {
-        Serial.print(asciiart(frame[k]));
-        Serial.print(' ');
-      }
-      Serial.println();
-    }
-  }
-  Serial.println();
-  delay(250);
-  
-  #else
   
   // if enabled this section produces a bar graph of the surface quality that can be used to focus the camera
   // also drawn is the average pixel value 0-63 and the shutter speed and the motion dx,dy.
